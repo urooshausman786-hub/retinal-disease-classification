@@ -90,7 +90,6 @@ if uploaded_file is not None:
         "Diabetic Retinopathy",
         "Glaucoma",
         "Cataract",
-        "Age-related Macular Degeneration",
         "Normal"
     ]
 
