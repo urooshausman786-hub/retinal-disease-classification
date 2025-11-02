@@ -3,54 +3,62 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 
-# --- PAGE CONFIG ---
+# ---------------------- PAGE CONFIG ----------------------
 st.set_page_config(
-    page_title="Retinal Disease Classifier",
+    page_title="Retinal Disease Classification",
     page_icon="🩺",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# --- CUSTOM CSS ---
+# ---------------------- CUSTOM CSS ----------------------
 st.markdown("""
-<style>
-    .stApp {
-        background-color: #f4f6fa;
-        font-family: 'Poppins', sans-serif;
+    <style>
+    body {
+        background-color: #f5faff;
+        font-family: 'Segoe UI', sans-serif;
     }
     .main-title {
-        color: #1b263b;
         text-align: center;
-        font-size: 2rem;
+        color: #004e92;
+        font-size: 32px;
         font-weight: 700;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0px;
     }
     .sub-title {
-        color: #415a77;
         text-align: center;
-        font-size: 1rem;
-        margin-bottom: 2rem;
+        color: #444444;
+        font-size: 18px;
+        margin-top: -5px;
+        margin-bottom: 30px;
+        font-weight: 500;
     }
     .stButton>button {
-        background-color: #1b263b;
+        background-color: #004e92;
         color: white;
+        border: None;
         border-radius: 10px;
-        height: 3em;
-        width: 100%;
+        padding: 10px 24px;
+        font-size: 16px;
         font-weight: 600;
-        border: none;
+        transition: 0.3s;
     }
     .stButton>button:hover {
-        background-color: #0d1b2a;
-        color: #e0e1dd;
+        background-color: #0078d7;
+        color: white;
+        transform: scale(1.05);
     }
-</style>
+    </style>
 """, unsafe_allow_html=True)
 
-# --- PAGE HEADER ---
-st.markdown('<p class="main-title">🩺 Retinal Disease Classification</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Upload a retinal image to detect possible eye diseases using AI</p>', unsafe_allow_html=True)
+# ---------------------- TITLES ----------------------
+st.markdown('<h1 class="main-title">🩺 Retinal Disease Classification System</h1>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="sub-title">Upload a retinal image to detect possible eye diseases using Deep Learning (CNN - MobileNetV2 Model)</p>',
+    unsafe_allow_html=True
+)
 
-# --- LOAD MODEL ---
+# ---------------------- LOAD MODEL ----------------------
 @st.cache_resource
 def load_model():
     interpreter = tf.lite.Interpreter(model_path="MobileNetV2_model.tflite")
@@ -61,22 +69,23 @@ interpreter = load_model()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-# --- FILE UPLOADER ---
-uploaded_file = st.file_uploader("📤 Choose a retinal image", type=["jpg", "jpeg", "png"])
+# ---------------------- FILE UPLOAD ----------------------
+uploaded_file = st.file_uploader("📤 Choose a retinal image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="🩻 Uploaded Retinal Image", use_container_width=True)
+    st.image(image, caption="Uploaded Retinal Image", use_container_width=True)
 
-    with st.spinner("🔍 Analyzing the image... Please wait"):
-        image_resized = image.resize((224, 224))
-        input_data = np.expand_dims(np.array(image_resized, dtype=np.float32) / 255.0, axis=0)
+    # Preprocess the image
+    image = image.resize((224, 224))
+    input_data = np.expand_dims(np.array(image, dtype=np.float32) / 255.0, axis=0)
 
-        interpreter.set_tensor(input_details[0]['index'], input_data)
-        interpreter.invoke()
-        predictions = interpreter.get_tensor(output_details[0]['index'])[0]
+    # Run model
+    interpreter.set_tensor(input_details[0]['index'], input_data)
+    interpreter.invoke()
+    predictions = interpreter.get_tensor(output_details[0]['index'])[0]
 
-    # --- CLASSIFICATION ---
+    # Define class names
     class_names = [
         "Diabetic Retinopathy",
         "Glaucoma",
@@ -88,15 +97,9 @@ if uploaded_file is not None:
     predicted_class = class_names[np.argmax(predictions)]
     confidence = np.max(predictions) * 100
 
-    st.success(f"🎯 **Prediction:** {predicted_class}")
-    st.info(f"📊 **Confidence:** {confidence:.2f}%")
+    # Show results
+    st.success(f"✅ **Prediction:** {predicted_class}")
+    st.info(f"🎯 **Confidence:** {confidence:.2f}%")
 
 else:
-    st.warning("👆 Please upload an image to begin diagnosis.")
-
-# --- FOOTER ---
-st.markdown("---")
-st.markdown(
-    "<p style='text-align:center; color:gray;'>Made with ❤️ by <b>Uroosha Usman</b> | MSc Computer Science</p>",
-    unsafe_allow_html=True
-)
+    st.warning("👁️ Please upload a retinal image to begin diagnosis.")
