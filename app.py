@@ -1,7 +1,8 @@
 import streamlit as st
 import numpy as np
 from PIL import Image
-import tflite_runtime.interpreter as tflite
+import tensorflow.lite as tflite
+
 
 st.set_page_config(page_title="Retinal Disease Classifier", page_icon="🩺")
 
