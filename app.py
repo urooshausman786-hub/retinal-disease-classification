@@ -1,48 +1,82 @@
 import streamlit as st
 import numpy as np
 from PIL import Image
-import tensorflow.lite as tflite
+import tensorflow as tf
 
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="Retinal Disease Classifier",
+    page_icon="🩺",
+    layout="centered"
+)
 
-st.set_page_config(page_title="Retinal Disease Classifier", page_icon="🩺")
+# --- CUSTOM CSS ---
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #f4f6fa;
+        font-family: 'Poppins', sans-serif;
+    }
+    .main-title {
+        color: #1b263b;
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    .sub-title {
+        color: #415a77;
+        text-align: center;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stButton>button {
+        background-color: #1b263b;
+        color: white;
+        border-radius: 10px;
+        height: 3em;
+        width: 100%;
+        font-weight: 600;
+        border: none;
+    }
+    .stButton>button:hover {
+        background-color: #0d1b2a;
+        color: #e0e1dd;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-st.title("🩺 Retinal Disease Classification")
-st.write("Upload a retinal image to predict the possible disease using a TFLite model.")
+# --- PAGE HEADER ---
+st.markdown('<p class="main-title">🩺 Retinal Disease Classification</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Upload a retinal image to detect possible eye diseases using AI</p>', unsafe_allow_html=True)
 
+# --- LOAD MODEL ---
 @st.cache_resource
 def load_model():
-    try:
-        interpreter = tflite.Interpreter(model_path="MobileNetV2_model.tflite")
-        interpreter.allocate_tensors()
-        return interpreter
-    except Exception as e:
-        st.error(f"Error loading model: {e}")
-        st.stop()
+    interpreter = tf.lite.Interpreter(model_path="MobileNetV2_model.tflite")
+    interpreter.allocate_tensors()
+    return interpreter
 
 interpreter = load_model()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-uploaded_file = st.file_uploader("Choose a retinal image...", type=["jpg", "jpeg", "png"])
+# --- FILE UPLOADER ---
+uploaded_file = st.file_uploader("📤 Choose a retinal image", type=["jpg", "jpeg", "png"])
 
-if uploaded_file:
+if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", use_container_width=True)
+    st.image(image, caption="🩻 Uploaded Retinal Image", use_container_width=True)
 
-    # Preprocess
-    image = image.resize((224, 224))
-    input_data = np.expand_dims(np.array(image, dtype=np.float32) / 255.0, axis=0)
+    with st.spinner("🔍 Analyzing the image... Please wait"):
+        image_resized = image.resize((224, 224))
+        input_data = np.expand_dims(np.array(image_resized, dtype=np.float32) / 255.0, axis=0)
 
-    # Run inference
-    try:
         interpreter.set_tensor(input_details[0]['index'], input_data)
         interpreter.invoke()
         predictions = interpreter.get_tensor(output_details[0]['index'])[0]
-    except Exception as e:
-        st.error(f"Inference error: {e}")
-        st.stop()
 
-    # Labels (edit as per your dataset)
+    # --- CLASSIFICATION ---
     class_names = [
         "Diabetic Retinopathy",
         "Glaucoma",
@@ -54,5 +88,15 @@ if uploaded_file:
     predicted_class = class_names[np.argmax(predictions)]
     confidence = np.max(predictions) * 100
 
-    st.success(f"✅ **Prediction:** {predicted_class}")
-    st.info(f"🎯 **Confidence:** {confidence:.2f}%")
+    st.success(f"🎯 **Prediction:** {predicted_class}")
+    st.info(f"📊 **Confidence:** {confidence:.2f}%")
+
+else:
+    st.warning("👆 Please upload an image to begin diagnosis.")
+
+# --- FOOTER ---
+st.markdown("---")
+st.markdown(
+    "<p style='text-align:center; color:gray;'>Made with ❤️ by <b>Uroosha Usman</b> | MSc Computer Science</p>",
+    unsafe_allow_html=True
+)
